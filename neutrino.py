@@ -6,6 +6,13 @@ from scipy.interpolate import RBFInterpolator
 
 import catalogs
 
+# TODO презентацию с описанием работы и итоговыми картинками
+
+# TODO распределение галактик в каждом каталоге на небесном сфере
+# TODO гистограммы по звездной величине и по числу объектов в каждом каталоге
+# TODO сделать те картинки которые выделялись отдельно
+# TODO погуглить с шестиугольниками
+
 # constants
 EMin = 30 * 10 ** 3
 EMax = 30 * 10 ** 6
@@ -23,12 +30,9 @@ auInPc = 206265
 NSunAu = 7 * 10 ** 10
 
 
-# TODO выбрать столбик, из него взять поток (число частиц) для каждой галактики (если надо можно домножить)
-# TODO выбрать площадку на небе (10' x 10') (можно варьировать)
-# TODO каждую галактику размазать гауссом (сигма 10", ширина гауссианы на половине максимума)
-
-
 def normal_pdf_logx_hist(n_particles):
+    # TODO поделить на (z + 1)
+
     n_distr = 10 ** 5
     distr = np.random.normal(mu, sigma, n_distr)
 
@@ -69,16 +73,22 @@ def scaling(data):
     data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
 
 
-def slice_data(n_grid):
-    glon0 = 90
-    glat0 = 60
-    dglon = 15
-    dglat = 15
+def gauss(glon, glat, dgl, n_grid, fwhm, offset=10):
+    # TODO make bugfix
+    # TODO вывод объектов на картинке в файл (+ название каталога) (сортировка по яркости)
+    # TODO шрифт, подписи (оси с единицами измерения и палитра), название
+    # TODO разбить сферу на равные пиксели (подумать о сетке координат) (а лучше найти решение)
 
-    glon_min = glon0 - dglon / 2
-    glon_max = glon0 + dglon / 2
-    glat_min = glat0 - dglat / 2
-    glat_max = glat0 + dglat / 2
+    from scipy.ndimage import gaussian_filter
+
+    glon_min = glon - dgl / 2 - offset
+    glon_max = glon + dgl / 2 + offset
+    glat_min = glat - dgl / 2 - offset
+    glat_max = glat + dgl / 2 + offset
+
+    offset_grid = int(n_grid / dgl * offset)
+    offset_grid += offset_grid % 2
+    n_grid += offset_grid
 
     data = catalogs.read_2mrsg()
     data = data.loc[(data['GLON'] > glon_min) &
@@ -95,99 +105,41 @@ def slice_data(n_grid):
     xi = np.searchsorted(x, data['GLON']) - 1
     yi = np.searchsorted(y, data['GLAT']) - 1
 
-    z = np.zeros(shape=(n_grid, n_grid))
+    z = np.zeros(shape=(n_grid + 1, n_grid + 1))
     z[yi, xi] = data['BAR'].to_numpy()
+
+    fwhm *= n_grid / dgl  # from degrees to pixels
+    sigma = fwhm / 2.355  # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+    z = gaussian_filter(z, sigma=sigma)
+
+    offset_grid //= 2
+    # x = x[offset_grid:-offset_grid - 1]
+    # y = y[offset_grid:-offset_grid - 1]
+    # z = z[offset_grid:-offset_grid - 1, offset_grid:-offset_grid - 1]
 
     return x, y, z
 
 
-def slice_data_interp(n_grid, epsilon):
-    glon0 = 90
-    glat0 = 60
-    dglon = 15
-    dglat = 15
-
-    glon_min = glon0 - dglon / 2
-    glon_max = glon0 + dglon / 2
-    glat_min = glat0 - dglat / 2
-    glat_max = glat0 + dglat / 2
-
-    data = catalogs.read_2mrsg()
-    data = data.loc[(data['GLON'] > glon_min) &
-                    (data['GLON'] < glon_max) &
-                    (data['GLAT'] > glat_min) &
-                    (data['GLAT'] < glat_max)]
-    scaling(data)
-
-    # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy())[:, 25]
-
-    print(data)
-    print()
-
-    n_grid_j = complex(0, n_grid)
-    xy_grid = np.mgrid[glon_min:glon_max:n_grid_j, glat_min:glat_max:n_grid_j]
-    xy_grid_flat = xy_grid.reshape(2, -1).T  # array of grid points, shape (n_grid, 2)
-
-    x = data['GLON'].to_numpy()
-    y = data['GLAT'].to_numpy()
-    z = data['BAR'].to_numpy()
-
-    interp = RBFInterpolator(list(zip(x, y)), z, kernel='gaussian', epsilon=epsilon)
-    z_flat = interp(xy_grid_flat)
-    z_grid = z_flat.reshape(n_grid, n_grid)
-
-    return xy_grid, z_grid
-
-
-def make_heights_equal(fig, rect, ax1, ax2, pad):
-    import mpl_toolkits.axes_grid1.axes_size as Size
-    from mpl_toolkits.axes_grid1.axes_divider import HBoxDivider
-
-    # pad in inches
-
-    h1, v1 = Size.AxesX(ax1), Size.AxesY(ax1)
-    h2, v2 = Size.AxesX(ax2), Size.AxesY(ax2)
-
-    pad_v = Size.Scaled(1)
-    pad_h = Size.Fixed(pad)
-
-    my_divider = HBoxDivider(fig, rect,
-                             horizontal=[h1, pad_h, h2],
-                             vertical=[v1, pad_v, v2])
-
-    ax1.set_axes_locator(my_divider.new_locator(0))
-    ax2.set_axes_locator(my_divider.new_locator(2))
-
-
-def slice_graph():
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+def gauss_graph():
+    import matplotlib.colors as colors
 
     fig = plt.figure(figsize=(19.2, 10.8))
 
-    n_grid = 300
-    epsilon = 10
-    vmin = 0
-    vmax = 5 * 10 ** -5
-    cmap = 'jet'
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
 
-    ax2 = fig.add_subplot(122)
-    ax2.set_aspect('equal')
-    x, y, z = slice_data(n_grid)
-    pc = ax2.pcolormesh(x, y, z, vmin=vmin, vmax=vmax, cmap=cmap)
+    glon = 90
+    glat = 60
+    dgl = 20
+    n_grid = 100
+    fwhm = 1.5
+    x, y, z = gauss(glon, glat, dgl, n_grid, fwhm)
+    pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=10 ** -8), cmap='jet')
 
-    ax1 = fig.add_subplot(121)
-    ax1.set_aspect('equal')
-    xy, z = slice_data_interp(n_grid, epsilon)
-    ax1.pcolormesh(*xy, z, vmin=vmin, vmax=vmax, cmap=cmap)
+    fig.colorbar(pc)
 
-    make_heights_equal(fig, 111, ax1, ax2, pad=0.75)
-
-    axins2 = inset_axes(ax2, width="5%", height="100%", loc='right', borderpad=-5)
-    fig.colorbar(pc, cax=axins2)
-
-    # plt.tight_layout()
+    plt.tight_layout()
     plt.show()
 
 
-slice_graph()
+gauss_graph()

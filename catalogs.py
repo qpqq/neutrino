@@ -79,10 +79,6 @@ def read_2mrs():
 @print_and_format
 def read_2mrsg():
     """
-    TODO посмотреть на совпадение между cf2 и 2mrsG
-    TODO пересекаются 4463 объекта { pd.merge(d1, d2, how='inner', on=['pgc']) }
-    TODO расстояния сильно варьируются (смотреть на edd)
-
     EDD:
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
@@ -108,15 +104,13 @@ def read_2mrsg():
 @print_and_format
 def read_cf2():
     """
-    TODO K_S от d_L
-
     EDD:
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
 
     data = pd.read_csv('datasets/cf2.csv')
 
-    data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0)]
+    data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0) & (data['Dist'] < 350)]
 
     selected_columns = data[['RAJ', 'DeJ', 'Glon', 'Glat', 'Dist', 'Btot']]
 
@@ -183,8 +177,6 @@ def read_milliquas():
     data['GLAT'] = angles.to_dec(data['RA'], data['DEC'])
     data['GLON'] = angles.to_ra(data['RA'], data['DEC'], data['GLAT'])
 
-    print(data)
-
     selected_columns = data[['RA', 'DEC', 'GLON', 'GLAT', 'Z', 'BMAG']]
 
     new_data = pd.DataFrame()
@@ -196,4 +188,6 @@ def read_milliquas():
     return new_data
 
 
-# read_milliquas()
+# read_2mrs()
+# read_2mrsg()
+# read_cf2()
