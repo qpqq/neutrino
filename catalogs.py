@@ -22,10 +22,19 @@ new_columns_names = ['RA', 'DEC', 'GLON', 'GLAT', 'DIST', 'MAG']
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-pd.set_option("display.show_dimensions", True)
-pd.set_option("display.precision", 1)
+pd.set_option('display.show_dimensions', True)
+pd.set_option('display.precision', 1)
 
 np.set_printoptions(precision=2)
+
+
+fullName = {
+    '2mrs': '2MASS Redshift Survey',
+    '2mrsg': '2MASS Redshift Survey (by groups)',
+    'cf2': 'Cosmicflows-2.1',
+    'bzcat': 'Roma-BZCAT',
+    'milliquas': 'Million Quasars'
+}
 
 
 def r_comoving(z):
@@ -79,6 +88,8 @@ def read_2mrs():
 @print_and_format
 def read_2mrsg():
     """
+    Combined of two catalogs
+
     EDD:
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
@@ -188,6 +199,18 @@ def read_milliquas():
     return new_data
 
 
-# read_2mrs()
-# read_2mrsg()
-# read_cf2()
+def read(name):
+    if name == '2mrs':
+        return read_2mrs()
+
+    elif name == '2mrsg':
+        return read_2mrsg()
+
+    elif name == 'cf2':
+        return read_cf2()
+
+    elif name == 'bzcat':
+        return read_bzcat()
+
+    elif name == 'milliquas':
+        return read_milliquas()

@@ -10,7 +10,7 @@ import catalogs
 # TODO распределение галактик в каждом каталоге на небесном сфере
 # TODO гистограммы по звездной величине и по числу объектов в каждом каталоге
 # TODO сделать те картинки которые выделялись отдельно
-# TODO погуглить с шестиугольниками
+# TODO погуглить с шестиугольниками (разбить сферу на равные пиксели (может не квадратные)) (а лучше найти решение)
 
 # constants
 EMin = 30 * 10 ** 3
@@ -74,10 +74,8 @@ def scaling(data):
     data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
 
 
-def gauss(glon, glat, dgl, n_grid, fwhm):
+def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     # TODO вывод объектов на картинке в файл (+ название каталога) (сортировка по яркости)
-    # TODO шрифт, подписи (оси с единицами измерения и палитра), название
-    # TODO разбить сферу на равные пиксели (подумать о сетке координат) (а лучше найти решение)
 
     from scipy.ndimage import gaussian_filter
 
@@ -92,7 +90,7 @@ def gauss(glon, glat, dgl, n_grid, fwhm):
     offset_grid = 2 * int(n_grid / dgl * offset)
     n_grid += offset_grid
 
-    data = catalogs.read_2mrsg()
+    data = catalogs.read(catalog)
     data = data.loc[(data['GLON'] > glon_min) &
                     (data['GLON'] < glon_max) &
                     (data['GLAT'] > glat_min) &
@@ -124,7 +122,7 @@ def gauss(glon, glat, dgl, n_grid, fwhm):
     return x, y, z
 
 
-def gauss_graph():
+def gauss_graph(catalog):
     import matplotlib.colors as colors
 
     fig = plt.figure(figsize=(19.2, 10.8))
@@ -134,17 +132,27 @@ def gauss_graph():
 
     glon = 90
     glat = 0
-    dgl = 20
+    dgl = 60
     n_grid = 100
     fwhm = 1.5
+    x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
 
-    x, y, z = gauss(glon, glat, dgl, n_grid, fwhm)
-    pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=10 ** -8), cmap='jet')
+    vmin = 10 ** -10
+    pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=vmin), cmap='jet')
 
-    fig.colorbar(pc)
+    cbar = fig.colorbar(pc, pad=0.01)
+    cbar.ax.tick_params(labelsize=18)
+    cbar.ax.set_ylabel(r'Neutrino flux, [s$^{-1}$ cm$^{-2}$]', fontsize=20)
+
+    ax.set_xlabel('Galactic longitude', fontsize=20)
+    ax.set_ylabel('Galactic latitude', fontsize=20)
+
+    ax.tick_params(axis='both', which='major', labelsize=18)
+
+    plt.title(f'{catalogs.fullName[catalog]}, {n_grid}x{n_grid}, fwhm = {fwhm}', fontsize=25, pad=15)
 
     plt.tight_layout()
     plt.show()
 
 
-gauss_graph()
+gauss_graph('2mrsg')
