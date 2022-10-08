@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -75,8 +76,6 @@ def scaling(data):
 
 
 def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
-    # TODO вывод объектов на картинке в файл (+ название каталога) (сортировка по яркости)
-
     from scipy.ndimage import gaussian_filter
 
     offset = 5 * fwhm
@@ -119,13 +118,17 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     y = y[offset_grid:-offset_grid]
     z = z[offset_grid:-offset_grid, offset_grid:-offset_grid]
 
+    os.makedirs('gauss graphs', exist_ok=True)
+    data = data.sort_values('BAR', ascending=False).reset_index(drop=True)
+    data.to_csv(f'gauss graphs/{catalog}.csv', index=False, float_format='%.15f')
+
     return x, y, z
 
 
 def gauss_graph(catalog):
     import matplotlib.colors as colors
 
-    fig = plt.figure(figsize=(19.2, 10.8))
+    fig = plt.figure(figsize=(14, 10.5))
 
     ax = fig.add_subplot(111)
     ax.set_aspect('equal')
@@ -137,7 +140,7 @@ def gauss_graph(catalog):
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
 
-    vmin = 10 ** -10
+    vmin = 10 ** -8
     pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=vmin), cmap='jet')
 
     cbar = fig.colorbar(pc, pad=0.01)
@@ -149,9 +152,10 @@ def gauss_graph(catalog):
 
     ax.tick_params(axis='both', which='major', labelsize=18)
 
-    plt.title(f'{catalogs.fullName[catalog]}, {n_grid}x{n_grid}, fwhm = {fwhm}', fontsize=25, pad=15)
+    ax.set_title(f'{catalogs.fullName[catalog]}, {n_grid}x{n_grid}, fwhm = {fwhm}', fontsize=25, pad=15)
 
-    plt.tight_layout()
+    fig.tight_layout()
+    fig.savefig(f'gauss graphs/{catalog}.png', dpi=120)
     plt.show()
 
 
