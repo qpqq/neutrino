@@ -1,8 +1,7 @@
+import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.stats import norm
-from scipy.interpolate import RBFInterpolator
 
 import catalogs
 
@@ -47,6 +46,8 @@ def normal_pdf_logx_hist(n_particles):
 
 
 def normal_pdf_logx_graph(n_particles):
+    from scipy.stats import norm
+
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
@@ -73,21 +74,22 @@ def scaling(data):
     data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
 
 
-def gauss(glon, glat, dgl, n_grid, fwhm, offset=10):
-    # TODO make bugfix
+def gauss(glon, glat, dgl, n_grid, fwhm):
     # TODO вывод объектов на картинке в файл (+ название каталога) (сортировка по яркости)
     # TODO шрифт, подписи (оси с единицами измерения и палитра), название
     # TODO разбить сферу на равные пиксели (подумать о сетке координат) (а лучше найти решение)
 
     from scipy.ndimage import gaussian_filter
 
+    offset = 5 * fwhm
+    fwhm *= n_grid / dgl  # from degrees to pixels
+
     glon_min = glon - dgl / 2 - offset
     glon_max = glon + dgl / 2 + offset
     glat_min = glat - dgl / 2 - offset
     glat_max = glat + dgl / 2 + offset
 
-    offset_grid = int(n_grid / dgl * offset)
-    offset_grid += offset_grid % 2
+    offset_grid = 2 * int(n_grid / dgl * offset)
     n_grid += offset_grid
 
     data = catalogs.read_2mrsg()
@@ -105,17 +107,19 @@ def gauss(glon, glat, dgl, n_grid, fwhm, offset=10):
     xi = np.searchsorted(x, data['GLON']) - 1
     yi = np.searchsorted(y, data['GLAT']) - 1
 
-    z = np.zeros(shape=(n_grid + 1, n_grid + 1))
-    z[yi, xi] = data['BAR'].to_numpy()
+    # grid with min float values
+    z = np.full(shape=(n_grid, n_grid), fill_value=sys.float_info.min)
+    for i in range(len(xi)):
+        z[yi[i], xi[i]] += data.iloc[i]['BAR']
 
-    fwhm *= n_grid / dgl  # from degrees to pixels
-    sigma = fwhm / 2.355  # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
-    z = gaussian_filter(z, sigma=sigma)
+    # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
+    sigma_gauss = fwhm / 2.355
+    z = gaussian_filter(z, sigma=sigma_gauss)
 
     offset_grid //= 2
-    # x = x[offset_grid:-offset_grid - 1]
-    # y = y[offset_grid:-offset_grid - 1]
-    # z = z[offset_grid:-offset_grid - 1, offset_grid:-offset_grid - 1]
+    x = x[offset_grid:-offset_grid]
+    y = y[offset_grid:-offset_grid]
+    z = z[offset_grid:-offset_grid, offset_grid:-offset_grid]
 
     return x, y, z
 
@@ -129,10 +133,11 @@ def gauss_graph():
     ax.set_aspect('equal')
 
     glon = 90
-    glat = 60
+    glat = 0
     dgl = 20
     n_grid = 100
     fwhm = 1.5
+
     x, y, z = gauss(glon, glat, dgl, n_grid, fwhm)
     pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=10 ** -8), cmap='jet')
 
