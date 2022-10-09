@@ -17,7 +17,7 @@ omega_m = 0.3
 omega_v = 0.7
 
 # identical columns of new tables
-new_columns_names = ['RA', 'DEC', 'GLON', 'GLAT', 'DIST', 'MAG']
+new_columns_names = ['RA', 'DEC', 'GLON', 'GLAT', 'Z', 'DIST', 'MAG']
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -26,7 +26,6 @@ pd.set_option('display.show_dimensions', True)
 pd.set_option('display.precision', 1)
 
 np.set_printoptions(precision=2)
-
 
 fullName = {
     '2mrs': '2MASS Redshift Survey',
@@ -72,11 +71,11 @@ def read_2mrs():
 
     data = data.loc[(data['V'] > 0) & (data['MKTC'] > 0)]
 
-    selected_columns = data[['RA', 'DEC', 'GLON', 'GLAT', 'V', 'MKTC']]
-
     new_data = pd.DataFrame()
-    new_data[new_columns_names] = selected_columns.copy()
+    new_data[new_columns_names] = data[['RA', 'DEC', 'GLON', 'GLAT', 'MKC', 'V', 'MKTC']]
 
+    # velocity to redshift
+    new_data['Z'] = new_data['DIST'] / c
     # velocity to Mpc
     new_data['DIST'] /= H
     # removing nearby galaxies due to inaccuracy in determining the distance
@@ -101,11 +100,11 @@ def read_2mrsg():
     data['DEC'] = angles.to_dec(data['GLong'], data['GLat'])
     data['RA'] = angles.to_ra(data['GLong'], data['GLat'], data['DEC'])
 
-    selected_columns = data[['RA', 'DEC', 'GLong', 'GLat', 'Vgp', 'K_t']]
-
     new_data = pd.DataFrame()
-    new_data[new_columns_names] = selected_columns.copy()
+    new_data[new_columns_names] = data[['RA', 'DEC', 'GLong', 'GLat', 'pgc', 'Vgp', 'K_t']]
 
+    # velocity to redshift
+    new_data['Z'] = new_data['DIST'] / c
     # velocity to Mpc
     new_data['DIST'] /= H
 
@@ -123,13 +122,14 @@ def read_cf2():
 
     data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0) & (data['Dist'] < 350)]
 
-    selected_columns = data[['RAJ', 'DeJ', 'Glon', 'Glat', 'Dist', 'Btot']]
-
     new_data = pd.DataFrame()
-    new_data[new_columns_names] = selected_columns.copy()
+    new_data[new_columns_names] = data[['RAJ', 'DeJ', 'Glon', 'Glat', 'pgc', 'Dist', 'Btot']]
 
     new_data['RA'] = angles.from_hms(new_data['RA'])
     new_data['DEC'] = angles.from_dms(new_data['DEC'])
+
+    # Mpc to redshift
+    new_data['Z'] = new_data['DIST'] * H / c
 
     return new_data
 
@@ -157,13 +157,11 @@ def read_bzcat():
     sign = np.where(data['DE-'] == '-', -1, 1)
     data['DEC'] = sign * (data['DEd'] + data['DEm'] / 60 + data['DEs'] / 60 / 60)
 
-    selected_columns = data[['RA', 'DEC', 'GLON', 'GLAT', 'z', 'Rmag']]
-
     new_data = pd.DataFrame()
-    new_data[new_columns_names] = selected_columns.copy()
+    new_data[new_columns_names] = data[['RA', 'DEC', 'GLON', 'GLAT', 'z', 'Seq', 'Rmag']]
 
     # redshift to Mpc
-    new_data['DIST'] = new_data['DIST'].apply(r_comoving)
+    new_data['DIST'] = new_data['Z'].apply(r_comoving)
 
     return new_data
 
@@ -188,13 +186,11 @@ def read_milliquas():
     data['GLAT'] = angles.to_dec(data['RA'], data['DEC'])
     data['GLON'] = angles.to_ra(data['RA'], data['DEC'], data['GLAT'])
 
-    selected_columns = data[['RA', 'DEC', 'GLON', 'GLAT', 'Z', 'BMAG']]
-
     new_data = pd.DataFrame()
-    new_data[new_columns_names] = selected_columns.copy()
+    new_data[new_columns_names] = data[['RA', 'DEC', 'GLON', 'GLAT', 'Z', 'RMAG', 'BMAG']]
 
     # redshift to Mpc
-    new_data['DIST'] = new_data['DIST'].apply(r_comoving)
+    new_data['DIST'] = new_data['Z'].apply(r_comoving)
 
     return new_data
 

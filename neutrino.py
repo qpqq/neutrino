@@ -32,16 +32,32 @@ auInPc = 206265
 NSunAu = 7 * 10 ** 10
 
 
-def normal_pdf_logx_hist(n_particles):
-    # TODO поделить на (z + 1)
-
+def normal_pdf_logx_hist(n_particles, z=None):
     n_distr = 10 ** 5
-    distr = np.random.normal(mu, sigma, n_distr)
+    rng = np.random.default_rng()
 
-    hist = np.histogram(distr, binsEdges)[0].astype('float64')
+    def histogram(distribution):
+        return np.histogram(distribution, binsEdges)[0].astype('float64')
 
-    if not np.isscalar(n_particles):
-        hist = np.tile(hist, (len(n_particles), 1))  # duplicates array n times
+    if np.isscalar(n_particles):
+        if z is None:
+            z = 0
+
+        _mu = mu - np.log10(z + 1)
+        distr = rng.normal(_mu, sigma, n_distr)
+        hist = histogram(distr)
+
+    else:
+        if z is None:
+            distr = rng.normal(mu, sigma, n_distr)
+            hist = np.histogram(distr, binsEdges)[0].astype('float64')
+            hist = np.tile(hist, (len(n_particles), 1))  # duplicates array n times
+
+        else:
+            _mu = mu - np.log10(z + 1)
+            distr = rng.normal(_mu, sigma, (n_distr, len(z)))
+            hist = np.apply_along_axis(histogram, 0, distr).T
+
     hist = (hist.T * n_particles).T
     hist /= n_distr
 
@@ -169,7 +185,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     scaling(data)
 
     # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy())[:, 25]
+    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, 25]
 
     x = np.linspace(glon_min, glon_max, n_grid + 1)
     y = np.linspace(glat_min, glat_max, n_grid + 1)
@@ -212,7 +228,7 @@ def gauss_graph(catalog):
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
 
-    vmin = 10 ** -8
+    vmin = 10 ** -10
     pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=vmin), cmap='jet')
 
     cbar = fig.colorbar(pc, pad=0.01)
@@ -229,3 +245,6 @@ def gauss_graph(catalog):
     fig.tight_layout()
     fig.savefig(f'gauss graphs/{catalog}.png', dpi=120)
     plt.show()
+
+
+gauss_graph('bzcat')
