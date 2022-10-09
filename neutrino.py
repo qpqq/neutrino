@@ -18,12 +18,11 @@ EMin = 30 * 10 ** 3
 EMax = 30 * 10 ** 6
 EMean = 1 * 10 ** 6
 
-bins_edges = np.linspace(np.log10(EMin), np.log10(EMax), 50)
+binsNumber = 100
+binsEdges = np.linspace(np.log10(EMin), np.log10(EMax), binsNumber)
 
 mu = np.log10(EMean)
 sigma = 0.6
-
-binsNumber = 100
 
 mSun = -26.74
 auInPc = 206265
@@ -36,10 +35,10 @@ def normal_pdf_logx_hist(n_particles):
     n_distr = 10 ** 5
     distr = np.random.normal(mu, sigma, n_distr)
 
-    hist = np.histogram(distr, bins_edges)[0].astype('float64')
+    hist = np.histogram(distr, binsEdges)[0].astype('float64')
 
-    # duplicates array n times
-    hist = np.tile(hist, (len(n_particles), 1))
+    if not np.isscalar(n_particles):
+        hist = np.tile(hist, (len(n_particles), 1))  # duplicates array n times
     hist = (hist.T * n_particles).T
     hist /= n_distr
 
@@ -48,15 +47,16 @@ def normal_pdf_logx_hist(n_particles):
 
 def normal_pdf_logx_graph(n_particles):
     from scipy.stats import norm
+    from matplotlib.ticker import AutoMinorLocator
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
     hist = normal_pdf_logx_hist(n_particles)
-    ax.stairs(hist, bins_edges, fill=False, color='tab:red')
+    ax.stairs(hist, binsEdges, fill=False, color='tab:red')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
-    y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (bins_edges[1] - bins_edges[0])
+    y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
     ax.set_xlabel('$E$, eV', fontsize=20)
@@ -64,10 +64,18 @@ def normal_pdf_logx_graph(n_particles):
     ax.set_xlim(np.log10(EMin), np.log10(EMax))
     ax.set_ylim(0)
 
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis='both', which='major', labelsize=18)
     ax.yaxis.offsetText.set_fontsize(18)
 
-    plt.tight_layout()
+    ax.grid(True, linewidth=0.3)
+    ax.grid(True, 'minor', linewidth=0.1)
+
+    title = fr'Normal distribution {n_particles} particles, $\sigma = {sigma}$, $\mu = {mu}$'
+    ax.set_title(title, fontsize=25, pad=15)
+
+    fig.tight_layout()
     plt.show()
 
 
