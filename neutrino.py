@@ -10,11 +10,10 @@ import angles
 
 # TODO презентацию с описанием работы и итоговыми картинками
 
-# TODO распределение галактик в каждом каталоге на небесном сфере
 # TODO сделать те картинки которые выделялись отдельно
 
 # TODO делать ли отсечки на основании гистограмм?
-# TODO делать ли умный выбор галактик в гауссе?
+# TODO как делать умный выбор галактик в гауссе?
 
 # constants
 EMin = 30 * 10 ** 3
@@ -318,7 +317,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     scaling(data)
 
     # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, 25]
+    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy())[:, 25]
 
     x = np.linspace(glon_min, glon_max, n_grid + 1)
     y = np.linspace(glat_min, glat_max, n_grid + 1)
@@ -352,9 +351,12 @@ def gauss_graph(catalog):
     ax = fig.add_subplot(111)
     ax.set_aspect('equal')
 
+    # values increase counterclockwise
+    ax.invert_xaxis()
+
     glon = 90
     glat = 0
-    dgl = 60
+    dgl = 30
     n_grid = 100
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
@@ -376,3 +378,6 @@ def gauss_graph(catalog):
     fig.tight_layout()
     fig.savefig(f'gauss graphs/{catalog}.png', dpi=120)
     plt.show()
+
+
+gauss_graph('milliquas')
