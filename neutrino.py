@@ -10,10 +10,9 @@ import angles
 
 # TODO презентацию с описанием работы и итоговыми картинками
 
-# TODO сделать те картинки которые выделялись отдельно
-
 # TODO делать ли отсечки на основании гистограмм?
 # TODO как делать умный выбор галактик в гауссе?
+# TODO еще графики?
 
 # constants
 EMin = 30 * 10 ** 3
@@ -62,6 +61,7 @@ def allsky(catalog):
         'cf2': {
             'par': [5, 0.005, 4],
             'by': 'DIST',
+            'vmin': None,
             'vmax': 200.2,
             'extend': 'max',
             'xlabel': 'Distance, Mpc',
@@ -144,7 +144,7 @@ def allsky(catalog):
     cbar = fig.colorbar(axrgb, extend=extend, location='bottom', fraction=0.05, shrink=0.3,
                         pad=0.05, anchor=(0, 3))
 
-    plt.grid(True, linestyle='--')
+    ax.grid(True, linestyle=':', linewidth=0.5)
 
     ax.set_title(fr'{catalogs.fullName[catalog]}', fontsize=35, pad=45)
     cbar.ax.set_xlabel(xlabel, fontsize=20, labelpad=-70)
@@ -172,6 +172,8 @@ def allsky(catalog):
 
 
 def normal_pdf_logx_hist(n_particles, z=None):
+    # TODO ускорить
+
     n_distr = 10 ** 5
     rng = np.random.default_rng()
 
@@ -317,7 +319,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     scaling(data)
 
     # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy())[:, 25]
+    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, 25]
 
     x = np.linspace(glon_min, glon_max, n_grid + 1)
     y = np.linspace(glat_min, glat_max, n_grid + 1)
@@ -356,7 +358,7 @@ def gauss_graph(catalog):
 
     glon = 90
     glat = 0
-    dgl = 30
+    dgl = 60
     n_grid = 100
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
@@ -380,4 +382,74 @@ def gauss_graph(catalog):
     plt.show()
 
 
-gauss_graph('milliquas')
+def diff():
+    d1 = pd.read_csv('datasets/2mrsG.csv')
+    d1 = d1.loc[(d1['Vgp'] > 0) & (d1['K_t'] > 0)]
+
+    d2 = pd.read_csv('datasets/cf2.csv')
+    d2 = d2.loc[(d2['Dist'] > 0) & (d2['Btot'] > 0) & (d2['Dist'] < 350)]
+
+    d3 = pd.merge(d1, d2, how='inner', on=['pgc'])
+    d3['DIFF'] = d3['Vgp'] / catalogs.H - d3['Dist']
+
+    fig = plt.figure(figsize=(19.2, 10.8))
+    ax = fig.add_subplot(111)
+
+    ax.hist(d3['DIFF'], 25)
+
+    ax.set_xlabel('Difference in distance, Mpc', fontsize=20)
+    ax.set_ylabel('$N$', fontsize=20)
+    ax.set_ylim(0)
+
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.yaxis.offsetText.set_fontsize(18)
+
+    ax.grid(True, linestyle=':', linewidth=0.3)
+    ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
+
+    ax.set_title(fr'Difference in distance between cf2 and 2mrsg catalogs, $N={len(d3.index)}$', fontsize=25, pad=15)
+
+    fig.tight_layout()
+
+    os.makedirs('other graphs', exist_ok=True)
+    fig.savefig('other graphs/diff.png', dpi=120)
+
+    plt.show()
+
+
+def k_s_vs_d_l():
+    data = pd.read_csv('datasets/cf2.csv')
+
+    data = data.loc[(data['Dist'] > 0) & (data['Ks'] > 0)]
+
+    fig = plt.figure(figsize=(19.2, 10.8))
+    ax = fig.add_subplot(111)
+
+    ax.scatter(data['Dist'], data['Ks'], s=1)
+
+    ax.set_xlabel('Distance, Mpc', fontsize=20)
+    ax.set_ylabel('$K_s$', fontsize=20)
+    ax.set_xlim(0)
+    ax.set_ylim(0)
+
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.yaxis.offsetText.set_fontsize(18)
+
+    ax.grid(True, linestyle='--', linewidth=0.3)
+    ax.grid(True, 'minor', linestyle='--', linewidth=0.1)
+
+    ax.set_title(fr'$K_s$ magnitude vs distance in {catalogs.fullName["cf2"]}', fontsize=25, pad=15)
+
+    fig.tight_layout()
+
+    os.makedirs('other graphs', exist_ok=True)
+    fig.savefig('other graphs/kSVsDl.png', dpi=120)
+
+    plt.show()
+
+
+allsky('milliquas')
