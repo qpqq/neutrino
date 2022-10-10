@@ -32,6 +32,146 @@ auInPc = 206265
 NSunAu = 7 * 10 ** 10
 
 
+def allsky(catalog):
+    visuals = {
+        '2mrs': {
+            'par': [5, 1, 3],
+            'by': 'DIST',
+            'vmin': 1,
+            'vmax': 349,
+            'extend': 'max',
+            'xlabel': 'Distance, Mpc',
+            'minMag': 7,
+            'maxMag': 12,
+            'step': 1,
+            'offset_1': 0.13,
+            'offset_2': 0.27
+        },
+        '2mrsg': {
+            'par': [5, 1, 3],
+            'by': 'DIST',
+            'vmin': 1,
+            'vmax': 349,
+            'extend': 'neither',
+            'xlabel': 'Distance, Mpc',
+            'minMag': 7,
+            'maxMag': 12,
+            'step': 1,
+            'offset_1': 0.13,
+            'offset_2': 0.27
+        },
+        'cf2': {
+            'par': [5, 0.005, 4],
+            'by': 'DIST',
+            'vmax': 200.2,
+            'extend': 'max',
+            'xlabel': 'Distance, Mpc',
+            'minMag': 8,
+            'maxMag': 18,
+            'step': 2,
+            'offset_1': 0.3,
+            'offset_2': 0.5
+        },
+        'bzcat': {
+            'par': [5, 0.1, 3],
+            'by': 'Z',
+            'vmin': None,
+            'vmax': 3.005,
+            'extend': 'max',
+            'xlabel': 'Redshift',
+            'minMag': 14,
+            'maxMag': 22,
+            'step': 2,
+            'offset_1': 0.22,
+            'offset_2': 0.5
+        },
+        'milliquas': {
+            'par': [0.5, 0.01, 3],
+            'by': 'Z',
+            'vmin': None,
+            'vmax': 4.005,
+            'extend': 'max',
+            'xlabel': 'Redshift',
+            'minMag': 15,
+            'maxMag': 25,
+            'step': 2,
+            'offset_1': 0.25,
+            'offset_2': 0.5
+        }
+    }
+
+    a, b, c = visuals[catalog]['par']
+    by = visuals[catalog]['by']
+    vmin = visuals[catalog]['vmin']
+    vmax = visuals[catalog]['vmax']
+    extend = visuals[catalog]['extend']
+    xlabel = visuals[catalog]['xlabel']
+    min_mag_sample = visuals[catalog]['minMag']
+    max_mag_sample = visuals[catalog]['maxMag']
+    step = visuals[catalog]['step']
+    offset_1 = visuals[catalog]['offset_1']
+    offset_2 = visuals[catalog]['offset_2']
+
+    def calc_size(mag):
+        return a + b * (max_mag - mag) ** c
+
+    data = catalogs.read(catalog)
+    max_mag = max(data['MAG'].max(), max_mag_sample)
+
+    fig = plt.figure(figsize=(19.2, 10.8))
+    ax = fig.add_subplot(111, projection='hammer')
+
+    # values increase counterclockwise
+    ax.set_xticks(ax.get_xticks(),
+                  ['210°', '240°', '270°', '300°', '330°', '0°', '30°', '60°', '90°', '120°', '150°'][::-1])
+
+    lon = angles.to_rad(data['GLON'].to_numpy())
+    lat = angles.to_rad(data['GLAT'].to_numpy())
+
+    # reflect the values relative to zero
+    lon = np.where(lon < np.pi, -lon, -lon + 2 * np.pi)
+
+    alpha = 0.7
+    cmap = mpl.cm.get_cmap("jet").copy()
+    color_over = cmap.get_over()
+    color_over[-1] = alpha
+    cmap.set_over(color_over)
+    axrgb = ax.scatter(lon, lat,
+                       s=calc_size(data['MAG']),
+                       marker='o', alpha=alpha,
+                       c=data[by], cmap=cmap,
+                       label=fr'$N={len(data.index)}$')
+    axrgb.set_clim(vmin=vmin, vmax=vmax)
+    cbar = fig.colorbar(axrgb, extend=extend, location='bottom', fraction=0.05, shrink=0.3,
+                        pad=0.05, anchor=(0, 3))
+
+    plt.grid(True, linestyle='--')
+
+    ax.set_title(fr'{catalogs.fullName[catalog]}', fontsize=35, pad=45)
+    cbar.ax.set_xlabel(xlabel, fontsize=20, labelpad=-70)
+    ax.legend(loc='upper right', fontsize=20, markerscale=0, frameon=False, fancybox=False)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    cbar.ax.tick_params(axis='both', which='major', labelsize=15)
+
+    # circles
+    ax2 = fig.add_axes([0.83, 0.038, 0.13, 0.1])
+    ax2.axis('off')
+    sample_mags = np.arange(min_mag_sample, max_mag_sample + step, step)
+    for _mag in sample_mags:
+        ax2.scatter(_mag, 0, s=calc_size(_mag), marker='o', c='black', clip_on=False)
+        offset_11 = 0
+        if _mag // 10 > 0:
+            offset_11 = offset_1
+        ax2.text(_mag - offset_1 - offset_11, -0.033, f'{str(_mag)}', fontsize=15)
+    ax2.text((min_mag_sample + max_mag_sample) / 2 - offset_2, 0.022, r'$m$', fontsize=20)
+
+    fig.tight_layout()
+
+    os.makedirs('all-sky graphs', exist_ok=True)
+    fig.savefig(f'all-sky graphs/{catalog}.png', dpi=120)
+    plt.show()
+
+
 def normal_pdf_logx_hist(n_particles, z=None):
     n_distr = 10 ** 5
     rng = np.random.default_rng()

@@ -183,8 +183,8 @@ def read_milliquas():
 
     data = data.loc[(data['Z'] != np.nan) & (data['Z'] > 0) & (data['BMAG'] > 0)]
 
-    data['GLAT'] = angles.to_dec(data['RA'], data['DEC'])
-    data['GLON'] = angles.to_ra(data['RA'], data['DEC'], data['GLAT'])
+    data['GLAT'] = angles.to_glat(data['RA'], data['DEC'])
+    data['GLON'] = angles.to_glon(data['RA'], data['DEC'], data['GLAT'])
 
     new_data = pd.DataFrame()
     new_data[new_columns_names] = data[['RA', 'DEC', 'GLON', 'GLAT', 'Z', 'RMAG', 'BMAG']]
