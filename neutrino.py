@@ -8,14 +8,15 @@ import matplotlib.pyplot as plt
 import catalogs
 import angles
 
-# TODO презентацию с описанием работы и итоговыми картинками
+# TODO презентацию со всеми картинками, несколько на слайд
+# TODO формулы з.в. и нейтринного потока
+# TODO рассказать при показе энергетического распределения: диапазон, параметры гауссианы, одни и те же бины
+# TODO 2mrs не нужен
 
-# TODO делать ли отсечки на основании гистограмм?
-# TODO как делать умный выбор галактик в гауссе?
-# TODO еще графики?
+# TODO normal_pdf_logx_graph сложить для всех галактик в каталоге
 
 # constants
-EMin = 30 * 10 ** 3
+EMin = 5 * 10 ** 3
 EMax = 30 * 10 ** 6
 EMean = 1 * 10 ** 6
 
@@ -39,8 +40,8 @@ def allsky(catalog):
             'vmax': 349,
             'extend': 'max',
             'xlabel': 'Distance, Mpc',
-            'minMag': 7,
-            'maxMag': 12,
+            'minMag': 6,
+            'maxMag': 11,
             'step': 1,
             'offset_1': 0.13,
             'offset_2': 0.27
@@ -52,8 +53,8 @@ def allsky(catalog):
             'vmax': 349,
             'extend': 'neither',
             'xlabel': 'Distance, Mpc',
-            'minMag': 7,
-            'maxMag': 12,
+            'minMag': 6,
+            'maxMag': 11,
             'step': 1,
             'offset_1': 0.13,
             'offset_2': 0.27
@@ -205,13 +206,13 @@ def normal_pdf_logx_hist(n_particles, z=None):
     return hist
 
 
-def normal_pdf_logx_graph(n_particles):
+def normal_pdf_logx_graph(n_particles, z=None):
     from scipy.stats import norm
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist = normal_pdf_logx_hist(n_particles)
+    hist = normal_pdf_logx_hist(n_particles, z)
     ax.stairs(hist, binsEdges, fill=False, color='tab:red')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
@@ -383,6 +384,8 @@ def gauss_graph(catalog):
 
 
 def diff():
+    # TODO сделать более явным (покрупнее шрифт)
+
     d1 = pd.read_csv('datasets/2mrsG.csv')
     d1 = d1.loc[(d1['Vgp'] > 0) & (d1['K_t'] > 0)]
 
@@ -420,6 +423,8 @@ def diff():
 
 
 def k_s_vs_d_l():
+    # TODO сделать его для Btot
+
     data = pd.read_csv('datasets/cf2.csv')
 
     data = data.loc[(data['Dist'] > 0) & (data['Ks'] > 0)]
@@ -450,6 +455,3 @@ def k_s_vs_d_l():
     fig.savefig('other graphs/kSVsDl.png', dpi=120)
 
     plt.show()
-
-
-allsky('milliquas')
