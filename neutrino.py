@@ -2,19 +2,19 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from matplotlib.ticker import AutoMinorLocator
-
 import catalogs
+import angles
 
 # TODO презентацию с описанием работы и итоговыми картинками
 
 # TODO распределение галактик в каждом каталоге на небесном сфере
 # TODO сделать те картинки которые выделялись отдельно
 
-# TODO сделать отсечки на основании гистограмм
-# TODO сделать умный выбор галактик в гауссе
+# TODO делать ли отсечки на основании гистограмм?
+# TODO делать ли умный выбор галактик в гауссе?
 
 # constants
 EMin = 30 * 10 ** 3
@@ -50,7 +50,7 @@ def normal_pdf_logx_hist(n_particles, z=None):
     else:
         if z is None:
             distr = rng.normal(mu, sigma, n_distr)
-            hist = np.histogram(distr, binsEdges)[0].astype('float64')
+            hist = histogram(distr)
             hist = np.tile(hist, (len(n_particles), 1))  # duplicates array n times
 
         else:
@@ -82,8 +82,8 @@ def normal_pdf_logx_graph(n_particles):
     ax.set_xlim(np.log10(EMin), np.log10(EMax))
     ax.set_ylim(0)
 
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.tick_params(axis='both', which='major', labelsize=18)
     ax.yaxis.offsetText.set_fontsize(18)
 
@@ -97,21 +97,45 @@ def normal_pdf_logx_graph(n_particles):
     plt.show()
 
 
-def hist_by_dist(catalog):
+def hist_by(catalog, by):
+    visuals = {
+        'DIST': {
+            'xlabel': 'Distance, Mpc',
+            'xlim': '0',
+            'dirName': 'histogram by distance',
+            'fileName': f'histogram by distance/{catalog}.png'
+        },
+        'MAG': {
+            'xlabel': 'Magnitude',
+            'xlim': 'bin',
+            'dirName': 'histogram by magnitude',
+            'fileName': f'histogram by magnitude/{catalog}.png'
+        },
+        'Z': {
+            'xlabel': 'Redshift',
+            'xlim': '0',
+            'dirName': 'histogram by redshift',
+            'fileName': f'histogram by redshift/{catalog}.png'
+        }
+    }
+
     data = catalogs.read(catalog)
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist, bins, _ = ax.hist(data['DIST'], 25, color='tab:blue')
+    hist, bins, _ = ax.hist(data[by], 25, color='tab:blue')
 
-    ax.set_xlabel('Distance, Mpc', fontsize=20)
+    ax.set_xlabel(visuals[by]['xlabel'], fontsize=20)
     ax.set_ylabel('$N$', fontsize=20)
-    ax.set_xlim(0, bins[-1])
+    xlim = 0
+    if visuals[by]['xlim'] == 'bin':
+        xlim = bins[0]
+    ax.set_xlim(xlim, bins[-1])
     ax.set_ylim(0)
 
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.tick_params(axis='both', which='major', labelsize=18)
     ax.yaxis.offsetText.set_fontsize(18)
 
@@ -122,39 +146,8 @@ def hist_by_dist(catalog):
 
     fig.tight_layout()
 
-    os.makedirs('histogram by distance', exist_ok=True)
-    fig.savefig(f'histogram by distance/{catalog}.png', dpi=120)
-
-    plt.show()
-
-
-def hist_by_mag(catalog):
-    data = catalogs.read(catalog)
-
-    fig = plt.figure(figsize=(19.2, 10.8))
-    ax = fig.add_subplot(111)
-
-    hist, bins, _ = ax.hist(data['MAG'], 25, color='tab:blue')
-
-    ax.set_xlabel('Magnitude', fontsize=20)
-    ax.set_ylabel('$N$', fontsize=20)
-    ax.set_xlim(bins[0], bins[-1])
-    ax.set_ylim(0)
-
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.yaxis.offsetText.set_fontsize(18)
-
-    ax.grid(True, linestyle=':', linewidth=0.3)
-    ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
-
-    ax.set_title(fr'{catalogs.fullName[catalog]}, $N={len(data.index)}$', fontsize=25, pad=15)
-
-    fig.tight_layout()
-
-    os.makedirs('histogram by magnitude', exist_ok=True)
-    fig.savefig(f'histogram by magnitude/{catalog}.png', dpi=120)
+    os.makedirs(visuals[by]['dirName'], exist_ok=True)
+    fig.savefig(visuals[by]['fileName'], dpi=120)
 
     plt.show()
 
@@ -214,8 +207,6 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
 
 
 def gauss_graph(catalog):
-    import matplotlib.colors as colors
-
     fig = plt.figure(figsize=(14, 10.5))
 
     ax = fig.add_subplot(111)
@@ -228,8 +219,8 @@ def gauss_graph(catalog):
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
 
-    vmin = 10 ** -10
-    pc = ax.pcolormesh(x, y, z, norm=colors.LogNorm(vmin=vmin), cmap='jet')
+    vmin = 10 ** -8
+    pc = ax.pcolormesh(x, y, z, norm=mpl.colors.LogNorm(vmin=vmin), cmap='jet')
 
     cbar = fig.colorbar(pc, pad=0.01)
     cbar.ax.tick_params(labelsize=18)
@@ -245,6 +236,3 @@ def gauss_graph(catalog):
     fig.tight_layout()
     fig.savefig(f'gauss graphs/{catalog}.png', dpi=120)
     plt.show()
-
-
-gauss_graph('bzcat')
