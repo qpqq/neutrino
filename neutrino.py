@@ -172,6 +172,10 @@ def allsky(catalog):
     plt.show()
 
 
+def scaling(data):
+    data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
+
+
 def normal_pdf_logx_hist(n_particles, z=None):
     # TODO ускорить
 
@@ -190,15 +194,27 @@ def normal_pdf_logx_hist(n_particles, z=None):
         hist = histogram(distr)
 
     else:
+        size = len(n_particles)
+
         if z is None:
             distr = rng.normal(mu, sigma, n_distr)
             hist = histogram(distr)
-            hist = np.tile(hist, (len(n_particles), 1))  # duplicates array n times
+            hist = np.tile(hist, (size, 1))  # duplicates array n times
 
         else:
-            _mu = mu - np.log10(z + 1)
-            distr = rng.normal(_mu, sigma, (n_distr, len(z)))
-            hist = np.apply_along_axis(histogram, 0, distr).T
+            hist = np.array([[]])
+            chunk = 5000
+            for i in range(0, size, chunk):
+                chunk_cur = min(chunk, size - i)
+
+                mu_diff = np.log10(z[i:i + chunk] + 1)
+
+                distr = rng.normal(mu, sigma, n_distr)
+                distr = np.tile(distr, (chunk_cur, 1))
+                distr = (distr.T - mu_diff)
+
+                hist_ = np.apply_along_axis(histogram, 0, distr).T
+                hist = np.concatenate((hist, hist_), axis=0) if hist.size else hist_
 
     hist = (hist.T * n_particles).T
     hist /= n_distr
@@ -219,7 +235,7 @@ def normal_pdf_logx_graph(n_particles, z=None):
     y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
-    ax.set_xlabel('$E$, eV', fontsize=20)
+    ax.set_xlabel(r'log$_{10}E$', fontsize=20)
     ax.set_ylabel('$N$', fontsize=20)
     ax.set_xlim(np.log10(EMin), np.log10(EMax))
     ax.set_ylim(0)
@@ -236,6 +252,50 @@ def normal_pdf_logx_graph(n_particles, z=None):
     ax.set_title(title, fontsize=25, pad=15)
 
     fig.tight_layout()
+    plt.show()
+
+
+def normal_pdf_logx_graph_all(catalog):
+    from scipy.stats import norm
+
+    data = catalogs.read(catalog)
+    scaling(data)
+
+    fig = plt.figure(figsize=(19.2, 10.8))
+    ax = fig.add_subplot(111)
+
+    hist = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())
+    hist = np.sum(hist, axis=0)
+    ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={len(data.index)}$')
+
+    x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
+    n_particles = np.sum(data['NEU'])
+    y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
+    ax.plot(x, y, linestyle='dotted', color='tab:blue')
+
+    ax.set_xlabel(r'log$_{10}E$', fontsize=20)
+    ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=20)
+    ax.set_xlim(np.log10(EMin), np.log10(EMax))
+    ax.set_ylim(0)
+
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.yaxis.offsetText.set_fontsize(18)
+
+    ax.grid(True, linewidth=0.3)
+    ax.grid(True, 'minor', linewidth=0.1)
+
+    ax.set_title(fr'{catalogs.fullName[catalog]} distribution', fontsize=25, pad=15)
+    leg = ax.legend(loc='upper right', fontsize=20, frameon=False, fancybox=False)
+    for item in leg.legendHandles:
+        item.set_visible(False)
+
+    fig.tight_layout()
+
+    os.makedirs('histogram sum', exist_ok=True)
+    fig.savefig(f'histogram sum/{catalog}.png', dpi=120)
+
     plt.show()
 
 
@@ -292,10 +352,6 @@ def hist_by(catalog, by):
     fig.savefig(visuals[by]['fileName'], dpi=120)
 
     plt.show()
-
-
-def scaling(data):
-    data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
 
 
 def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
@@ -369,10 +425,10 @@ def gauss_graph(catalog):
 
     cbar = fig.colorbar(pc, pad=0.01)
     cbar.ax.tick_params(labelsize=18)
-    cbar.ax.set_ylabel(r'Neutrino flux, [s$^{-1}$ cm$^{-2}$]', fontsize=20)
+    cbar.ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=20)
 
-    ax.set_xlabel('Galactic longitude', fontsize=20)
-    ax.set_ylabel('Galactic latitude', fontsize=20)
+    ax.set_xlabel('Galactic longitude, degrees', fontsize=20)
+    ax.set_ylabel('Galactic latitude, degrees', fontsize=20)
 
     ax.tick_params(axis='both', which='major', labelsize=18)
 
@@ -401,7 +457,7 @@ def diff():
     ax.hist(d3['DIFF'], 25)
 
     ax.set_xlabel('Difference in distance, Mpc', fontsize=20)
-    ax.set_ylabel('$N$', fontsize=20)
+    ax.set_ylabel('r$N$', fontsize=20)
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
