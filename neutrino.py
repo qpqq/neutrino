@@ -8,10 +8,25 @@ import matplotlib.pyplot as plt
 import catalogs
 import angles
 
-# TODO презентацию со всеми картинками, несколько на слайд
-# TODO формулы з.в. и нейтринного потока
-# TODO рассказать при показе энергетического распределения: диапазон, параметры гауссианы, одни и те же бины
-# TODO 2mrs не нужен
+# TODO гистограмма для потоков (логарифм энергии)
+# TODO гистограмма для потоков в столбце (логарифм энергии, используемый бин)
+
+# TODO разность звездных величин в разных фильтрах
+#  https://vk.com/doc500152640_648627931?hash=z948VlQzUFMxtCxVrb6zvVXIyIIECwjAqzHWRQvDzKT&dl=o0hgqnhtA55KssQgEXoREkaWcw5sihCEaGIILpWZWxg
+
+# TODO промоделировать пуассоновский процесс (обычный генератор) в кубе (сфере) некоторого радиуса
+#  у каждого объекта будет абсолютная величина (обычный генератор) (первое приближение генерировать через гауссиану)
+#  посчитать видимую звездную
+#  сделать два каталога: с селекцией и без (обрубить по видимой звездной)
+#  число точек в искусственных каталогах должно быть равно числу точек в реальных
+#  (можно потыкаться или моделировать сразу много)
+#  картинки:
+#  как в смещении Малмквиста (абсолютная от расстояния)
+#  все те картинки, что мы делали для реальных каталогов (должно быть видно смещение)
+#  ----------------------------------------------------------------------------------
+#  должно получится 2 * 4 каталога (сделать сначала по bzcat)
+
+# TODO (со звездочкой) исследовать каталог квазаров на однородные выборки (по Type, по Zcite)
 
 # constants
 EMin = 5 * 10 ** 3
@@ -265,6 +280,7 @@ def normal_pdf_logx_graph_all(catalog):
     from scipy.stats import norm
 
     data = catalogs.read(catalog)
+    # data = data.loc[(data['Z'] > 2) & (data['Z'] < 3)]
     scaling(data)
 
     fig = plt.figure(figsize=(19.2, 10.8))
@@ -275,7 +291,7 @@ def normal_pdf_logx_graph_all(catalog):
     ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={len(data.index)}$')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
-    n_particles = np.sum(data['NEU'])
+    n_particles = np.sum(hist)
     y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
@@ -415,6 +431,8 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
 
 
 def gauss_graph(catalog):
+    # TODO номер столбца добавить
+
     visuals = {
         '2mrs': {
             'dgl': 60,
@@ -543,3 +561,6 @@ def btot_vs_dist():
     fig.savefig('other graphs/btotVsDist.png', dpi=120)
 
     plt.show()
+
+
+normal_pdf_logx_graph(10 ** -6)

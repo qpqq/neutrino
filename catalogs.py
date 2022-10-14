@@ -137,8 +137,6 @@ def read_cf2():
 @print_and_format
 def read_bzcat():
     """
-    TODO насколько отличаются звездные величины в разных фильтрах у АЧТ (хотелось бы нормировать з.в.)
-
     Main page:
         https://heasarc.gsfc.nasa.gov/W3Browse/all/romabzcat.html
     Catalog page:
