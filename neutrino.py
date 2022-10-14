@@ -13,8 +13,6 @@ import angles
 # TODO рассказать при показе энергетического распределения: диапазон, параметры гауссианы, одни и те же бины
 # TODO 2mrs не нужен
 
-# TODO normal_pdf_logx_graph сложить для всех галактик в каталоге
-
 # constants
 EMin = 5 * 10 ** 3
 EMax = 30 * 10 ** 6
@@ -30,6 +28,13 @@ mSun = -26.74
 auInPc = 206265
 NSunAu = 7 * 10 ** 10
 
+tickSize = 25  # old 20
+tickSizeCbar = 25  # old 20
+labelSize = 25  # old 20
+legendSize = 25  # old 20
+titleSize = 35  # old 35
+magTextSize = 20  # old 15
+
 
 def allsky(catalog):
     visuals = {
@@ -43,7 +48,7 @@ def allsky(catalog):
             'minMag': 6,
             'maxMag': 11,
             'step': 1,
-            'offset_1': 0.13,
+            'offset_1': 0.15,
             'offset_2': 0.27
         },
         '2mrsg': {
@@ -56,7 +61,7 @@ def allsky(catalog):
             'minMag': 6,
             'maxMag': 11,
             'step': 1,
-            'offset_1': 0.13,
+            'offset_1': 0.15,
             'offset_2': 0.27
         },
         'cf2': {
@@ -69,7 +74,7 @@ def allsky(catalog):
             'minMag': 8,
             'maxMag': 18,
             'step': 2,
-            'offset_1': 0.3,
+            'offset_1': 0.35,
             'offset_2': 0.5
         },
         'bzcat': {
@@ -82,7 +87,7 @@ def allsky(catalog):
             'minMag': 14,
             'maxMag': 22,
             'step': 2,
-            'offset_1': 0.22,
+            'offset_1': 0.3,
             'offset_2': 0.5
         },
         'milliquas': {
@@ -95,7 +100,7 @@ def allsky(catalog):
             'minMag': 15,
             'maxMag': 25,
             'step': 2,
-            'offset_1': 0.25,
+            'offset_1': 0.35,
             'offset_2': 0.5
         }
     }
@@ -147,11 +152,11 @@ def allsky(catalog):
 
     ax.grid(True, linestyle=':', linewidth=0.5)
 
-    ax.set_title(fr'{catalogs.fullName[catalog]}', fontsize=35, pad=45)
-    cbar.ax.set_xlabel(xlabel, fontsize=20, labelpad=-70)
-    ax.legend(loc='upper right', fontsize=20, markerscale=0, frameon=False, fancybox=False)
-    ax.tick_params(axis='both', which='major', labelsize=20)
-    cbar.ax.tick_params(axis='both', which='major', labelsize=15)
+    ax.set_title(fr'{catalogs.fullName[catalog]}', fontsize=titleSize, pad=45)
+    cbar.ax.set_xlabel(xlabel, fontsize=labelSize, labelpad=-80)
+    ax.legend(loc='upper right', fontsize=legendSize, markerscale=0, frameon=False, fancybox=False)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
+    cbar.ax.tick_params(axis='both', which='major', labelsize=tickSizeCbar)
 
     # circles
     ax2 = fig.add_axes([0.83, 0.038, 0.13, 0.1])
@@ -162,8 +167,8 @@ def allsky(catalog):
         offset_11 = 0
         if _mag // 10 > 0:
             offset_11 = offset_1
-        ax2.text(_mag - offset_1 - offset_11, -0.033, f'{str(_mag)}', fontsize=15)
-    ax2.text((min_mag_sample + max_mag_sample) / 2 - offset_2, 0.022, r'$m$', fontsize=20)
+        ax2.text(_mag - offset_1 - offset_11, -0.04, f'{str(_mag)}', fontsize=magTextSize)
+    ax2.text((min_mag_sample + max_mag_sample) / 2 - offset_2, 0.022, r'$m$', fontsize=labelSize)
 
     fig.tight_layout()
 
@@ -177,8 +182,6 @@ def scaling(data):
 
 
 def normal_pdf_logx_hist(n_particles, z=None):
-    # TODO ускорить
-
     n_distr = 10 ** 5
     rng = np.random.default_rng()
 
@@ -229,27 +232,30 @@ def normal_pdf_logx_graph(n_particles, z=None):
     ax = fig.add_subplot(111)
 
     hist = normal_pdf_logx_hist(n_particles, z)
-    ax.stairs(hist, binsEdges, fill=False, color='tab:red')
+    ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={n_particles}$')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
     y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
-    ax.set_xlabel(r'log$_{10}E$', fontsize=20)
-    ax.set_ylabel('$N$', fontsize=20)
+    ax.set_xlabel(r'log$_{10}E$', fontsize=labelSize)
+    ax.set_ylabel('$N$', fontsize=labelSize)
     ax.set_xlim(np.log10(EMin), np.log10(EMax))
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
     ax.yaxis.offsetText.set_fontsize(18)
 
     ax.grid(True, linewidth=0.3)
     ax.grid(True, 'minor', linewidth=0.1)
 
     title = fr'Normal distribution {n_particles} particles, $\sigma = {sigma}$, $\mu = {mu}$'
-    ax.set_title(title, fontsize=25, pad=15)
+    ax.set_title(title, fontsize=titleSize, pad=15)
+    leg = ax.legend(loc='upper right', fontsize=legendSize, frameon=False, fancybox=False)
+    for item in leg.legendHandles:
+        item.set_visible(False)
 
     fig.tight_layout()
     plt.show()
@@ -273,21 +279,21 @@ def normal_pdf_logx_graph_all(catalog):
     y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
-    ax.set_xlabel(r'log$_{10}E$', fontsize=20)
-    ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=20)
+    ax.set_xlabel(r'log$_{10}E$', fontsize=labelSize)
+    ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=labelSize)
     ax.set_xlim(np.log10(EMin), np.log10(EMax))
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.yaxis.offsetText.set_fontsize(18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
+    ax.yaxis.offsetText.set_fontsize(tickSize)
 
     ax.grid(True, linewidth=0.3)
     ax.grid(True, 'minor', linewidth=0.1)
 
-    ax.set_title(fr'{catalogs.fullName[catalog]} distribution', fontsize=25, pad=15)
-    leg = ax.legend(loc='upper right', fontsize=20, frameon=False, fancybox=False)
+    ax.set_title(fr'{catalogs.fullName[catalog]} distribution', fontsize=labelSize, pad=15)
+    leg = ax.legend(loc='upper right', fontsize=legendSize, frameon=False, fancybox=False)
     for item in leg.legendHandles:
         item.set_visible(False)
 
@@ -305,51 +311,55 @@ def hist_by(catalog, by):
             'xlabel': 'Distance, Mpc',
             'xlim': '0',
             'dirName': 'histogram by distance',
-            'fileName': f'histogram by distance/{catalog}.png'
         },
         'MAG': {
             'xlabel': 'Magnitude',
             'xlim': 'bin',
             'dirName': 'histogram by magnitude',
-            'fileName': f'histogram by magnitude/{catalog}.png'
         },
         'Z': {
             'xlabel': 'Redshift',
             'xlim': '0',
             'dirName': 'histogram by redshift',
-            'fileName': f'histogram by redshift/{catalog}.png'
         }
     }
+
+    xlabel = visuals[by]['xlabel']
+    xlim_mod = visuals[by]['xlim']
+    dir_name = visuals[by]['dirName']
 
     data = catalogs.read(catalog)
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist, bins, _ = ax.hist(data[by], 25, color='tab:blue')
+    hist, bins, _ = ax.hist(data[by], 25, color='tab:blue', label=fr'$N={len(data.index)}$')
 
-    ax.set_xlabel(visuals[by]['xlabel'], fontsize=20)
-    ax.set_ylabel('$N$', fontsize=20)
+    ax.set_xlabel(xlabel, fontsize=labelSize)
+    ax.set_ylabel('$N$', fontsize=labelSize)
     xlim = 0
-    if visuals[by]['xlim'] == 'bin':
+    if xlim_mod == 'bin':
         xlim = bins[0]
     ax.set_xlim(xlim, bins[-1])
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.yaxis.offsetText.set_fontsize(18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
+    ax.yaxis.offsetText.set_fontsize(tickSize)
 
     ax.grid(True, linestyle=':', linewidth=0.3)
     ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
 
-    ax.set_title(fr'{catalogs.fullName[catalog]}, $N={len(data.index)}$', fontsize=25, pad=15)
+    ax.set_title(fr'{catalogs.fullName[catalog]}', fontsize=titleSize, pad=15)
+    leg = ax.legend(fontsize=legendSize, handlelength=0, frameon=False, fancybox=False)
+    for item in leg.legendHandles:
+        item.set_visible(False)
 
     fig.tight_layout()
 
-    os.makedirs(visuals[by]['dirName'], exist_ok=True)
-    fig.savefig(visuals[by]['fileName'], dpi=120)
+    os.makedirs(dir_name, exist_ok=True)
+    fig.savefig(dir_name + f'/{catalog}.png', dpi=120)
 
     plt.show()
 
@@ -405,6 +415,32 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
 
 
 def gauss_graph(catalog):
+    visuals = {
+        '2mrs': {
+            'dgl': 60,
+            'vmin': 10 ** -8
+        },
+        '2mrsg': {
+            'dgl': 60,
+            'vmin': 10 ** -8
+        },
+        'cf2': {
+            'dgl': 60,
+            'vmin': 10 ** -8
+        },
+        'bzcat': {
+            'dgl': 60,
+            'vmin': 10 ** -10
+        },
+        'milliquas': {
+            'dgl': 30,
+            'vmin': 10 ** -8
+        }
+    }
+
+    dgl = visuals[catalog]['dgl']
+    vmin = visuals[catalog]['vmin']
+
     fig = plt.figure(figsize=(14, 10.5))
 
     ax = fig.add_subplot(111)
@@ -415,24 +451,22 @@ def gauss_graph(catalog):
 
     glon = 90
     glat = 0
-    dgl = 60
     n_grid = 100
     fwhm = 1.5
     x, y, z = gauss(catalog, glon, glat, dgl, n_grid, fwhm)
 
-    vmin = 10 ** -8
     pc = ax.pcolormesh(x, y, z, norm=mpl.colors.LogNorm(vmin=vmin), cmap='jet')
 
     cbar = fig.colorbar(pc, pad=0.01)
-    cbar.ax.tick_params(labelsize=18)
-    cbar.ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=20)
+    cbar.ax.tick_params(labelsize=tickSizeCbar)
+    cbar.ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=labelSize)
 
-    ax.set_xlabel('Galactic longitude, degrees', fontsize=20)
-    ax.set_ylabel('Galactic latitude, degrees', fontsize=20)
+    ax.set_xlabel('Galactic longitude, degrees', fontsize=labelSize)
+    ax.set_ylabel('Galactic latitude, degrees', fontsize=labelSize)
 
-    ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
 
-    ax.set_title(f'{catalogs.fullName[catalog]}, {n_grid}x{n_grid}, fwhm = {fwhm}', fontsize=25, pad=15)
+    ax.set_title(f'{catalogs.fullName[catalog]}, {n_grid}x{n_grid}, fwhm = {fwhm}', fontsize=30, pad=15)
 
     fig.tight_layout()
     fig.savefig(f'gauss graphs/{catalog}.png', dpi=120)
@@ -440,8 +474,6 @@ def gauss_graph(catalog):
 
 
 def diff():
-    # TODO сделать более явным (покрупнее шрифт)
-
     d1 = pd.read_csv('datasets/2mrsG.csv')
     d1 = d1.loc[(d1['Vgp'] > 0) & (d1['K_t'] > 0)]
 
@@ -454,21 +486,23 @@ def diff():
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    ax.hist(d3['DIFF'], 25)
+    bins = ax.hist(d3['DIFF'], 50, range=(-50, 50), label=fr'$N={len(d3.index)}$')[1]
 
-    ax.set_xlabel('Difference in distance, Mpc', fontsize=20)
-    ax.set_ylabel('r$N$', fontsize=20)
+    ax.set_xlabel('Difference in distance, Mpc', fontsize=labelSize)
+    ax.set_ylabel(r'$N$', fontsize=labelSize)
+    ax.set_xlim(bins[0], bins[-1])
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.yaxis.offsetText.set_fontsize(18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
+    ax.yaxis.offsetText.set_fontsize(tickSize)
 
     ax.grid(True, linestyle=':', linewidth=0.3)
     ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
 
-    ax.set_title(fr'Difference in distance between cf2 and 2mrsg catalogs, $N={len(d3.index)}$', fontsize=25, pad=15)
+    ax.set_title(fr'Difference in distance between cf2 and 2mrsg catalogs', fontsize=titleSize, pad=15)
+    ax.legend(fontsize=legendSize, handlelength=0, frameon=False, fancybox=False)
 
     fig.tight_layout()
 
@@ -478,36 +512,34 @@ def diff():
     plt.show()
 
 
-def k_s_vs_d_l():
-    # TODO сделать его для Btot
-
+def btot_vs_dist():
     data = pd.read_csv('datasets/cf2.csv')
 
-    data = data.loc[(data['Dist'] > 0) & (data['Ks'] > 0)]
+    data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0)]
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    ax.scatter(data['Dist'], data['Ks'], s=1)
+    ax.scatter(data['Dist'], data['Btot'], s=1)
 
-    ax.set_xlabel('Distance, Mpc', fontsize=20)
-    ax.set_ylabel('$K_s$', fontsize=20)
+    ax.set_xlabel('Distance, Mpc', fontsize=labelSize)
+    ax.set_ylabel('$B_{tot}$', fontsize=labelSize)
     ax.set_xlim(0)
     ax.set_ylim(0)
 
     ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.yaxis.offsetText.set_fontsize(18)
+    ax.tick_params(axis='both', which='major', labelsize=tickSize)
+    ax.yaxis.offsetText.set_fontsize(tickSize)
 
     ax.grid(True, linestyle='--', linewidth=0.3)
     ax.grid(True, 'minor', linestyle='--', linewidth=0.1)
 
-    ax.set_title(fr'$K_s$ magnitude vs distance in {catalogs.fullName["cf2"]}', fontsize=25, pad=15)
+    ax.set_title(r'$B_{tot}$' + f' magnitude vs distance in {catalogs.fullName["cf2"]}', fontsize=titleSize, pad=15)
 
     fig.tight_layout()
 
     os.makedirs('other graphs', exist_ok=True)
-    fig.savefig('other graphs/kSVsDl.png', dpi=120)
+    fig.savefig('other graphs/btotVsDist.png', dpi=120)
 
     plt.show()
