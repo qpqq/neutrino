@@ -51,6 +51,10 @@ fullName = {
     'milliquas': 'Million Quasars'
 }
 
+for Name in list(fullName.keys()):
+    fullName[f'{Name}_s'] = fullName[Name] + ' simulated'
+    fullName[f'{Name}_ss'] = fullName[Name] + ' simulated with selection'
+
 
 def r_comoving(z):
     return c / H * integrate.quad(lambda y: 1 / np.sqrt(omega_v + omega_m * (1 + y) ** 3), 0, z)[0]
@@ -115,7 +119,7 @@ def prepare_and_write(func):
             data[f'BIN {i}'] = hist[:, i]
 
         data = data.sort_values('DIST').reset_index(drop=True)
-        data.to_csv(f'datasets/{name}_finished.csv.zip', index=False, float_format='%.15f')
+        data.to_csv(f'datasets/{name}.csv.zip', index=False, float_format='%.15f')
 
     return wrapper
 
@@ -131,7 +135,7 @@ def prepare_2mrs():
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
 
-    hdul = fits.open('datasets/2mrs.fits')
+    hdul = fits.open('datasets/2mrs_full.fits')
     data = Table(hdul[1].data).to_pandas()
     hdul.close()
 
@@ -162,7 +166,7 @@ def prepare_2mrsg():
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
 
-    data = pd.read_csv('datasets/2mrsG.csv')
+    data = pd.read_csv('datasets/2mrsg_full.csv')
 
     data = data.loc[(data['Vgp'] > 0) & (data['K_t'] > 0)]
 
@@ -190,7 +194,7 @@ def prepare_cf2():
         http://edd.ifa.hawaii.edu/dfirst.php?
     """
 
-    data = pd.read_csv('datasets/cf2.csv')
+    data = pd.read_csv('datasets/cf2_full.csv')
 
     data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0) & (data['Dist'] < 350)]
 
@@ -220,7 +224,7 @@ def prepare_bzcat():
         http://cdsarc.u-strasbg.fr/ftp/cats/VII/274/ReadMe
     """
 
-    hdul = fits.open('datasets/bzcat.fits')
+    hdul = fits.open('datasets/bzcat_full.fits')
     data = Table(hdul[1].data).to_pandas()
     hdul.close()
 
@@ -250,7 +254,7 @@ def prepare_milliquas():
         https://quasars.org/Milliquas-ReadMe.txt
     """
 
-    hdul = fits.open('datasets/milliquas.fits')
+    hdul = fits.open('datasets/milliquas_full.fits')
     data = Table(hdul[1].data).to_pandas()
     hdul.close()
 
@@ -285,4 +289,4 @@ def read(name):
         elif name == 'milliquas':
             prepare_milliquas()
 
-    return pd.read_csv(f'datasets/{name}_finished.csv.zip')
+    return pd.read_csv(f'datasets/{name}.csv.zip')

@@ -444,10 +444,10 @@ def gauss_graph(catalog):
 
 
 def diff():
-    d1 = pd.read_csv('datasets/2mrsG.csv')
+    d1 = pd.read_csv('datasets/2mrsg_full.csv')
     d1 = d1.loc[(d1['Vgp'] > 0) & (d1['K_t'] > 0)]
 
-    d2 = pd.read_csv('datasets/cf2.csv')
+    d2 = pd.read_csv('datasets/cf2_full.csv')
     d2 = d2.loc[(d2['Dist'] > 0) & (d2['Btot'] > 0) & (d2['Dist'] < 350)]
 
     d3 = pd.merge(d1, d2, how='inner', on=['pgc'])
@@ -483,7 +483,7 @@ def diff():
 
 
 def btot_vs_dist():
-    data = pd.read_csv('datasets/cf2.csv')
+    data = pd.read_csv('datasets/cf2_full.csv')
 
     data = data.loc[(data['Dist'] > 0) & (data['Btot'] > 0)]
 
