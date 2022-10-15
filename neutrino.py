@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import catalogs
 import angles
 
-# TODO гистограмма для потоков (логарифм энергии)
 # TODO гистограмма для потоков в столбце (логарифм энергии, используемый бин)
 
 # TODO разность звездных величин в разных фильтрах
@@ -34,6 +33,7 @@ EMax = 30 * 10 ** 6
 EMean = 1 * 10 ** 6
 
 binsNumber = 50
+bestBin = 25
 binsEdges = np.linspace(np.log10(EMin), np.log10(EMax), binsNumber)
 
 mu = np.log10(EMean)
@@ -325,29 +325,48 @@ def hist_by(catalog, by):
     visuals = {
         'DIST': {
             'xlabel': 'Distance, Mpc',
-            'xlim': '0',
+            'xlimMod': '0',
             'dirName': 'histogram by distance',
         },
         'MAG': {
             'xlabel': 'Magnitude',
-            'xlim': 'bin',
+            'xlimMod': 'bin',
             'dirName': 'histogram by magnitude',
         },
         'Z': {
             'xlabel': 'Redshift',
-            'xlim': '0',
+            'xlimMod': '0',
             'dirName': 'histogram by redshift',
+        },
+        'NEU': {
+            'xlabel': r'log$_{10}$ of neutrino flux',
+            'xlimMod': 'bin',
+            'dirName': 'histogram by flux',
+        },
+        'BAR': {
+            'xlabel': r'log$_{10}$ of neutrino flux in bin #' + f'{bestBin}',
+            'xlimMod': 'bin',
+            'dirName': 'histogram by flux in bin',
         }
     }
 
     xlabel = visuals[by]['xlabel']
-    xlim_mod = visuals[by]['xlim']
+    xlim_mod = visuals[by]['xlimMod']
     dir_name = visuals[by]['dirName']
 
     data = catalogs.read(catalog)
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
+
+    if by == 'NEU':
+        scaling(data)
+        data['NEU'] = np.log10(data['NEU'])
+
+    if by == 'BAR':
+        scaling(data)
+        data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, bestBin]
+        data['BAR'] = np.log10(data['BAR'])
 
     hist, bins, _ = ax.hist(data[by], 25, color='tab:blue', label=fr'$N={len(data.index)}$')
 
@@ -402,7 +421,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     scaling(data)
 
     # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, 25]
+    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, bestBin]
 
     x = np.linspace(glon_min, glon_max, n_grid + 1)
     y = np.linspace(glat_min, glat_max, n_grid + 1)
@@ -431,8 +450,6 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
 
 
 def gauss_graph(catalog):
-    # TODO номер столбца добавить
-
     visuals = {
         '2mrs': {
             'dgl': 60,
@@ -477,7 +494,7 @@ def gauss_graph(catalog):
 
     cbar = fig.colorbar(pc, pad=0.01)
     cbar.ax.tick_params(labelsize=tickSizeCbar)
-    cbar.ax.set_ylabel(r'Neutrino flux, s$^{-1}$ cm$^{-2}$', fontsize=labelSize)
+    cbar.ax.set_ylabel(f'Neutrino flux in bin #{bestBin}, ' + r's$^{-1}$ cm$^{-2}$', fontsize=labelSize)
 
     ax.set_xlabel('Galactic longitude, degrees', fontsize=labelSize)
     ax.set_ylabel('Galactic latitude, degrees', fontsize=labelSize)
@@ -561,6 +578,3 @@ def btot_vs_dist():
     fig.savefig('other graphs/btotVsDist.png', dpi=120)
 
     plt.show()
-
-
-normal_pdf_logx_graph(10 ** -6)
