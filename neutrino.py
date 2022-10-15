@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+from scipy import stats, ndimage
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -182,8 +183,6 @@ def allsky(catalog):
 
 
 def normal_pdf_logx_graph(n_particles, z=None):
-    from scipy.stats import norm
-
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
@@ -191,7 +190,7 @@ def normal_pdf_logx_graph(n_particles, z=None):
     ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={n_particles}$')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
-    y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
+    y = stats.norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
     ax.set_xlabel(r'log$_{10}E$', fontsize=labelSize)
@@ -218,21 +217,19 @@ def normal_pdf_logx_graph(n_particles, z=None):
 
 
 def normal_pdf_logx_graph_all(catalog):
-    from scipy.stats import norm
-
     data = catalogs.read(catalog)
     # data = data.loc[(data['Z'] > 2) & (data['Z'] < 3)]
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist = data.iloc[:, -binsNumber:-1].T
+    hist = data.iloc[:, -binsNumber:]
     hist = np.sum(hist, axis=0)
     ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={len(data.index)}$')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
     n_particles = np.sum(hist)
-    y = norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
+    y = stats.norm.pdf(x, loc=mu, scale=sigma) * n_particles * (binsEdges[1] - binsEdges[0])
     ax.plot(x, y, linestyle='dotted', color='tab:blue')
 
     ax.set_xlabel(r'log$_{10}E$', fontsize=labelSize)
@@ -340,12 +337,10 @@ def hist_by(catalog, by):
     os.makedirs(dir_name, exist_ok=True)
     fig.savefig(dir_name + f'/{catalog}.png', dpi=120)
 
-    # plt.show() #######################################################################################
+    plt.show()
 
 
 def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
-    from scipy.ndimage import gaussian_filter
-
     offset = 5 * fwhm
     fwhm *= n_grid / dgl  # from degrees to pixels
 
@@ -375,7 +370,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
 
     # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
     sigma_gauss = fwhm / 2.355
-    z = gaussian_filter(z, sigma=sigma_gauss)
+    z = ndimage.gaussian_filter(z, sigma=sigma_gauss)
 
     offset_grid //= 2
     x = x[offset_grid:-offset_grid]
