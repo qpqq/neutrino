@@ -8,11 +8,6 @@ import matplotlib.pyplot as plt
 import catalogs
 import angles
 
-# TODO гистограмма для потоков в столбце (логарифм энергии, используемый бин)
-
-# TODO разность звездных величин в разных фильтрах
-#  https://vk.com/doc500152640_648627931?hash=z948VlQzUFMxtCxVrb6zvVXIyIIECwjAqzHWRQvDzKT&dl=o0hgqnhtA55KssQgEXoREkaWcw5sihCEaGIILpWZWxg
-
 # TODO промоделировать пуассоновский процесс (обычный генератор) в кубе (сфере) некоторого радиуса
 #  у каждого объекта будет абсолютная величина (обычный генератор) (первое приближение генерировать через гауссиану)
 #  посчитать видимую звездную
@@ -27,28 +22,22 @@ import angles
 
 # TODO (со звездочкой) исследовать каталог квазаров на однородные выборки (по Type, по Zcite)
 
-# constants
-EMin = 5 * 10 ** 3
-EMax = 30 * 10 ** 6
-EMean = 1 * 10 ** 6
+EMin = catalogs.EMin
+EMax = catalogs.EMax
 
-binsNumber = 50
-bestBin = 25
-binsEdges = np.linspace(np.log10(EMin), np.log10(EMax), binsNumber)
+binsNumber = catalogs.binsNumber
+bestBin = catalogs.bestBin
+binsEdges = catalogs.binsEdges
 
-mu = np.log10(EMean)
-sigma = 0.6
+mu = catalogs.mu
+sigma = catalogs.sigma
 
-mSun = -26.74
-auInPc = 206265
-NSunAu = 7 * 10 ** 10
-
-tickSize = 25  # old 20
-tickSizeCbar = 25  # old 20
-labelSize = 25  # old 20
-legendSize = 25  # old 20
-titleSize = 35  # old 35
-magTextSize = 20  # old 15
+tickSize = 25
+tickSizeCbar = 25
+labelSize = 25
+legendSize = 25
+titleSize = 35
+magTextSize = 20
 
 
 def allsky(catalog):
@@ -60,10 +49,10 @@ def allsky(catalog):
             'vmax': 349,
             'extend': 'max',
             'xlabel': 'Distance, Mpc',
-            'minMag': 6,
-            'maxMag': 11,
+            'minMag': 7,
+            'maxMag': 12,
             'step': 1,
-            'offset_1': 0.15,
+            'offset_1': 0.17,
             'offset_2': 0.27
         },
         '2mrsg': {
@@ -73,10 +62,10 @@ def allsky(catalog):
             'vmax': 349,
             'extend': 'neither',
             'xlabel': 'Distance, Mpc',
-            'minMag': 6,
-            'maxMag': 11,
+            'minMag': 7,
+            'maxMag': 12,
             'step': 1,
-            'offset_1': 0.15,
+            'offset_1': 0.17,
             'offset_2': 0.27
         },
         'cf2': {
@@ -192,61 +181,13 @@ def allsky(catalog):
     plt.show()
 
 
-def scaling(data):
-    data['NEU'] = NSunAu * 10 ** (0.4 * (mSun - data['MAG']))
-
-
-def normal_pdf_logx_hist(n_particles, z=None):
-    n_distr = 10 ** 5
-    rng = np.random.default_rng()
-
-    def histogram(distribution):
-        return np.histogram(distribution, binsEdges)[0].astype('float64')
-
-    if np.isscalar(n_particles):
-        if z is None:
-            z = 0
-
-        _mu = mu - np.log10(z + 1)
-        distr = rng.normal(_mu, sigma, n_distr)
-        hist = histogram(distr)
-
-    else:
-        size = len(n_particles)
-
-        if z is None:
-            distr = rng.normal(mu, sigma, n_distr)
-            hist = histogram(distr)
-            hist = np.tile(hist, (size, 1))  # duplicates array n times
-
-        else:
-            hist = np.array([[]])
-            chunk = 5000
-            for i in range(0, size, chunk):
-                chunk_cur = min(chunk, size - i)
-
-                mu_diff = np.log10(z[i:i + chunk] + 1)
-
-                distr = rng.normal(mu, sigma, n_distr)
-                distr = np.tile(distr, (chunk_cur, 1))
-                distr = (distr.T - mu_diff)
-
-                hist_ = np.apply_along_axis(histogram, 0, distr).T
-                hist = np.concatenate((hist, hist_), axis=0) if hist.size else hist_
-
-    hist = (hist.T * n_particles).T
-    hist /= n_distr
-
-    return hist
-
-
 def normal_pdf_logx_graph(n_particles, z=None):
     from scipy.stats import norm
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist = normal_pdf_logx_hist(n_particles, z)
+    hist = catalogs.normal_pdf_logx_hist(n_particles, z)
     ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={n_particles}$')
 
     x = np.linspace(np.log10(EMin), np.log10(EMax), 10 ** 4)
@@ -281,12 +222,11 @@ def normal_pdf_logx_graph_all(catalog):
 
     data = catalogs.read(catalog)
     # data = data.loc[(data['Z'] > 2) & (data['Z'] < 3)]
-    scaling(data)
 
     fig = plt.figure(figsize=(19.2, 10.8))
     ax = fig.add_subplot(111)
 
-    hist = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())
+    hist = data.iloc[:, -binsNumber:-1].T
     hist = np.sum(hist, axis=0)
     ax.stairs(hist, binsEdges, fill=False, color='tab:red', label=fr'$N={len(data.index)}$')
 
@@ -323,6 +263,11 @@ def normal_pdf_logx_graph_all(catalog):
 
 def hist_by(catalog, by):
     visuals = {
+        'Z': {
+            'xlabel': 'Redshift',
+            'xlimMod': '0',
+            'dirName': 'histogram by redshift',
+        },
         'DIST': {
             'xlabel': 'Distance, Mpc',
             'xlimMod': '0',
@@ -333,10 +278,10 @@ def hist_by(catalog, by):
             'xlimMod': 'bin',
             'dirName': 'histogram by magnitude',
         },
-        'Z': {
-            'xlabel': 'Redshift',
-            'xlimMod': '0',
-            'dirName': 'histogram by redshift',
+        'MAG ABS': {
+            'xlabel': 'Absolute magnitude',
+            'xlimMod': 'bin',
+            'dirName': 'histogram by absolute magnitude',
         },
         'NEU': {
             'xlabel': r'log$_{10}$ of neutrino flux',
@@ -360,13 +305,12 @@ def hist_by(catalog, by):
     ax = fig.add_subplot(111)
 
     if by == 'NEU':
-        scaling(data)
-        data['NEU'] = np.log10(data['NEU'])
+        by = 'NEU LOG'
+        data[by] = np.log10(data['NEU'])
 
     if by == 'BAR':
-        scaling(data)
-        data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, bestBin]
-        data['BAR'] = np.log10(data['BAR'])
+        by = f'BIN {bestBin} LOG'
+        data[by] = np.log10(data[f'BIN {bestBin}'])
 
     hist, bins, _ = ax.hist(data[by], 25, color='tab:blue', label=fr'$N={len(data.index)}$')
 
@@ -396,7 +340,7 @@ def hist_by(catalog, by):
     os.makedirs(dir_name, exist_ok=True)
     fig.savefig(dir_name + f'/{catalog}.png', dpi=120)
 
-    plt.show()
+    # plt.show() #######################################################################################
 
 
 def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
@@ -418,10 +362,6 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
                     (data['GLON'] < glon_max) &
                     (data['GLAT'] > glat_min) &
                     (data['GLAT'] < glat_max)]
-    scaling(data)
-
-    # extracts specific column
-    data['BAR'] = normal_pdf_logx_hist(data['NEU'].to_numpy(), data['Z'].to_numpy())[:, bestBin]
 
     x = np.linspace(glon_min, glon_max, n_grid + 1)
     y = np.linspace(glat_min, glat_max, n_grid + 1)
@@ -431,7 +371,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     # grid with min float values
     z = np.full(shape=(n_grid, n_grid), fill_value=sys.float_info.min)
     for i in range(len(xi)):
-        z[yi[i], xi[i]] += data.iloc[i]['BAR']
+        z[yi[i], xi[i]] += data.iloc[i][f'BIN {bestBin}']
 
     # https://en.wikipedia.org/wiki/Full_width_at_half_maximum
     sigma_gauss = fwhm / 2.355
@@ -443,7 +383,7 @@ def gauss(catalog, glon, glat, dgl, n_grid, fwhm):
     z = z[offset_grid:-offset_grid, offset_grid:-offset_grid]
 
     os.makedirs('gauss graphs', exist_ok=True)
-    data = data.sort_values('BAR', ascending=False).reset_index(drop=True)
+    data = data.sort_values(f'BIN {bestBin}', ascending=False).reset_index(drop=True)
     data.to_csv(f'gauss graphs/{catalog}.csv', index=False, float_format='%.15f')
 
     return x, y, z
