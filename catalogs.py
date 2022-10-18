@@ -232,9 +232,12 @@ def prepare_milliquas():
         https://quasars.org/Milliquas-ReadMe.txt
     """
 
-    hdul = fits.open('datasets/milliquas_full.fits')
-    data = Table(hdul[1].data).to_pandas()
-    hdul.close()
+    # the original catalog is too big
+    # hdul = fits.open('datasets/milliquas_full.fits')
+    # data = Table(hdul[1].data).to_pandas()
+    # hdul.close()
+
+    data = pd.read_csv('datasets/milliquas_full.csv.zip')
 
     data = data.loc[(data['Z'] != np.nan) & (data['Z'] > 0) & (data['BMAG'] > 0)]
 

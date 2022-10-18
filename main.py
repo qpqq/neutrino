@@ -67,8 +67,7 @@ def all_graphs_sim_catalogs():
 
 
 def main():
-    print_time(neutrino.allsky, '2mrs_s', show=False)
-    print_time(neutrino.allsky, '2mrsg_s', show=False)
+    pass
 
 
 # TODO промоделировать пуассоновский процесс (обычный генератор) в кубе (сфере) некоторого радиуса
