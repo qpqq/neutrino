@@ -38,33 +38,33 @@ def from_hms(angle):
 
 # NGP refers to the coordinate values of the north galactic pole and NCP to those of the north celestial pole
 # https://en.wikipedia.org/wiki/Astronomical_coordinate_systems#Equatorial_%E2%86%94_galactic
-ra_ngp = 192.85948
-dec_ngp = 27.12825
-glon_ncp = 122.93192
+RaNgp = 192.85948
+DecNgp = 27.12825
+GlonNcp = 122.93192
 
-ra_ngp_r = to_rad(ra_ngp)
-dec_ngp_r = to_rad(dec_ngp)
-glon_ncp_r = to_rad(glon_ncp)
+RaNgpR = to_rad(RaNgp)
+DecNgpR = to_rad(DecNgp)
+GlonNcpR = to_rad(GlonNcp)
 
 
 def to_ra(glon, glat, dec):
     """
     Conversion from galactic to equatorial coordinates. All values must be in degrees
 
-    :return: declination
+    :return: right ascension
     """
 
     glon_r = to_rad(glon)
     glat_r = to_rad(glat)
     dec_r = to_rad(dec)
 
-    d_ra_sin = np.cos(glat_r) * np.sin(glon_ncp_r - glon_r)
+    d_ra_sin = np.cos(glat_r) * np.sin(GlonNcpR - glon_r)
     d_ra_sin /= np.cos(dec_r)
-    d_ra_cos = np.sin(glat_r) * np.cos(dec_ngp_r) - np.cos(glat_r) * np.sin(dec_ngp_r) * np.cos(glon_ncp_r - glon_r)
+    d_ra_cos = np.sin(glat_r) * np.cos(DecNgpR) - np.cos(glat_r) * np.sin(DecNgpR) * np.cos(GlonNcpR - glon_r)
     d_ra_cos /= np.cos(dec_r)
 
     d_ra_r = np.arctan2(d_ra_sin, d_ra_cos)
-    ra = to_deg(ra_ngp_r + d_ra_r)
+    ra = to_deg(RaNgpR + d_ra_r)
 
     ra = np.where(ra > 360, ra - 360, ra)
 
@@ -82,7 +82,7 @@ def to_dec(glon, glat):
     glat_r = to_rad(glat)
 
     dec_r = np.arcsin(
-        np.sin(dec_ngp_r) * np.sin(glat_r) + np.cos(dec_ngp_r) * np.cos(glat_r) * np.cos(glon_ncp_r - glon_r))
+        np.sin(DecNgpR) * np.sin(glat_r) + np.cos(DecNgpR) * np.cos(glat_r) * np.cos(GlonNcpR - glon_r))
 
     return to_deg(dec_r)
 
@@ -98,13 +98,13 @@ def to_glon(ra, dec, glat):
     dec_r = to_rad(dec)
     glat_r = to_rad(glat)
 
-    d_glon_sin = np.cos(dec_r) * np.sin(ra_r - ra_ngp_r)
+    d_glon_sin = np.cos(dec_r) * np.sin(ra_r - RaNgpR)
     d_glon_sin /= np.cos(glat_r)
-    d_glon_cos = np.sin(dec_r) * np.cos(dec_ngp_r) - np.cos(dec_r) * np.sin(dec_ngp_r) * np.cos(ra_r - ra_ngp_r)
+    d_glon_cos = np.sin(dec_r) * np.cos(DecNgpR) - np.cos(dec_r) * np.sin(DecNgpR) * np.cos(ra_r - RaNgpR)
     d_glon_cos /= np.cos(glat_r)
 
     d_glon_r = np.arctan2(d_glon_sin, d_glon_cos)
-    glon = to_deg(glon_ncp_r - d_glon_r)
+    glon = to_deg(GlonNcpR - d_glon_r)
 
     glon = np.where(glon < 0, 360 + glon, glon)
 
@@ -122,6 +122,26 @@ def to_glat(ra, dec):
     dec_r = to_rad(dec)
 
     glat_r = np.arcsin(
-        np.sin(dec_ngp_r) * np.sin(dec_r) + np.cos(dec_ngp_r) * np.cos(dec_r) * np.cos(ra_r - ra_ngp_r))
+        np.sin(DecNgpR) * np.sin(dec_r) + np.cos(DecNgpR) * np.cos(dec_r) * np.cos(ra_r - RaNgpR))
 
     return to_deg(glat_r)
+
+
+def to_gal_coords(x, y, z, dist):
+    """
+    It is assumed that the xy plane lies in the plane of the galaxy,
+    the points on the x-axis have zero longitude,
+    the points on the y-axis have a longitude equal to 270 degrees, and
+    the points on the z-axis have a latitude equal to 90 degrees.
+
+    dist = np.sqrt(x ** 2, y ** 2, z ** 2)
+    """
+
+    lat = np.sign(z) * np.arccos(np.sqrt(x ** 2 + y ** 2) / dist)
+    lat = to_deg(lat)
+
+    lon = np.arctan2(y, x)
+    lon = to_deg(lon)
+    lon = np.where(lon > 0, 360 - lon, -lon)
+
+    return lon, lat
