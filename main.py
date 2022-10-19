@@ -38,6 +38,7 @@ def all_graphs(catalog):
     print_time(neutrino.hist_by, catalog, 'BAR', show=False)
     print_time(neutrino.hist_by, catalog, 'MAG', show=False)
     print_time(neutrino.hist_by, catalog, 'Z', show=False)
+    print_time(neutrino.hist_flux_vs_dist, catalog, show=False)
     print_time(neutrino.hist_sum, catalog, show=False)
 
     if catalog[-2:] == '_s':

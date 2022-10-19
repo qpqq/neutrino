@@ -333,7 +333,7 @@ def hist_by(catalog, by, show=True, save=True):
     ax.grid(True, linestyle=':', linewidth=0.3)
     ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
 
-    ax.set_title(fr'{catalogs.FullName[catalog]}', fontsize=TitleSize, pad=15)
+    ax.set_title(f'{catalogs.FullName[catalog]}', fontsize=TitleSize, pad=15)
     leg = ax.legend(fontsize=LegendSize, handlelength=0, frameon=False, fancybox=False)
     for item in leg.legendHandles:
         item.set_visible(False)
@@ -343,6 +343,54 @@ def hist_by(catalog, by, show=True, save=True):
     if save:
         os.makedirs(dir_name, exist_ok=True)
         fig.savefig(dir_name + f'/{catalog}.png', dpi=120)
+
+    if show:
+        plt.show()
+
+    plt.close(fig)
+
+
+def hist_flux_vs_dist(catalog, show=True, save=True):
+    data = catalogs.read(catalog)
+
+    n_hist = 25
+    bins = np.linspace(data['DIST'].min(), data['DIST'].max(), n_hist + 1)
+    bins[0] -= min(bins[0] / 2, 1)
+    index = np.searchsorted(bins, data['DIST'])
+    ind = np.searchsorted(index, np.arange(1, n_hist + 1))
+
+    hist = []
+    for i in range(len(ind) - 1):
+        hist.append(np.sum(data['NEU'][ind[i]:ind[i + 1]]))
+    hist.append(np.sum(data['NEU'][ind[-1]:]))
+
+    fig = plt.figure(figsize=(19.2, 10.8))
+    ax = fig.add_subplot(111)
+
+    ax.stairs(np.log10(hist), bins, label=fr'$N={len(data.index)}$')
+
+    ax.set_xlabel('Distance, Mpc', fontsize=LabelSize)
+    ax.set_ylabel(r'log$_{10}$ of neutrino flux', fontsize=LabelSize)
+    ax.set_xlim(bins[0], bins[-1])
+
+    ax.xaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.yaxis.set_minor_locator(mpl.ticker.AutoMinorLocator())
+    ax.tick_params(axis='both', which='major', labelsize=TickSize)
+    ax.yaxis.offsetText.set_fontsize(TickSize)
+
+    ax.grid(True, linestyle=':', linewidth=0.3)
+    ax.grid(True, 'minor', linestyle=':', linewidth=0.1)
+
+    ax.set_title(f'Histogram flux vs dist for {catalogs.FullName[catalog]}', fontsize=TitleSize, pad=15)
+    leg = ax.legend(fontsize=LegendSize, handlelength=0, frameon=False, fancybox=False)
+    for item in leg.legendHandles:
+        item.set_visible(False)
+
+    fig.tight_layout()
+
+    if save:
+        os.makedirs('histogram flux vs dist', exist_ok=True)
+        fig.savefig(f'histogram flux vs dist/{catalog}.png', dpi=120)
 
     if show:
         plt.show()
